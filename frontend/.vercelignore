@@ -1,0 +1,10 @@
+backend/
+node_modules/
+.git/
+*.md
+.env.example
+QUICKSTART.md
+src/
+package.json
+tsconfig.json
+dist/

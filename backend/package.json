@@ -1,0 +1,37 @@
+{
+  "name": "farcaster-sniper-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Farcaster Creator Coin Sniper",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "watch": "tsx watch src/index.ts"
+  },
+  "keywords": [
+    "farcaster",
+    "sniper",
+    "api",
+    "backend"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@neynar/nodejs-sdk": "^2.0.0",
+    "ethers": "^6.9.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/node-cron": "^3.0.11",
+    "typescript": "^5.3.3",
+    "tsx": "^4.7.0"
+  }
+}
