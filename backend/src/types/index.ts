@@ -13,6 +13,7 @@ export interface MonitoredUser {
   fid: number;
   username?: string;
   buyAmountEth: number;
+  slippagePercent?: number; // Custom slippage for this user (overrides default)
   enabled: boolean;
 }
 

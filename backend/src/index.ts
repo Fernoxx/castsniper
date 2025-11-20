@@ -7,11 +7,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Start background monitoring automatically when server starts
-// Users are added via the web API, and monitoring will check them automatically
+// Auto-monitored users (from config) are added first, then monitoring starts
+// Additional users can be added via the web API
 if (process.env.ENABLE_BACKGROUND_MONITORING !== 'false') {
-  try {
-    startBackgroundMonitoring();
-  } catch (error) {
+  startBackgroundMonitoring().catch((error) => {
     console.error('Failed to start background monitoring:', error);
-  }
+  });
 }

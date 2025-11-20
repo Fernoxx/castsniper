@@ -1,5 +1,6 @@
 import { SniperService } from './sniper.service.js';
 import type { SniperConfig } from '../types/index.js';
+import { AUTO_MONITOR_ADDRESSES } from '../config/auto-monitor.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -44,9 +45,45 @@ export function getSniperService(): SniperService {
 }
 
 /**
+ * Initialize auto-monitored addresses
+ */
+async function initializeAutoMonitoredUsers(): Promise<void> {
+  if (AUTO_MONITOR_ADDRESSES.length === 0) {
+    return;
+  }
+
+  const sniper = getSniperService();
+  
+  console.log(`\n📋 Initializing ${AUTO_MONITOR_ADDRESSES.length} auto-monitored user(s)...\n`);
+  
+  for (const config of AUTO_MONITOR_ADDRESSES) {
+    try {
+      const user = await sniper.addUser(
+        config.identifier,
+        config.buyAmountEth,
+        config.slippagePercent
+      );
+      
+      if (user) {
+        console.log(`✅ Auto-monitoring: ${user.username || config.identifier} (FID: ${user.fid})`);
+        if (config.description) {
+          console.log(`   ${config.description}`);
+        }
+      } else {
+        console.warn(`⚠️  Could not add auto-monitor user: ${config.identifier}`);
+      }
+    } catch (error) {
+      console.error(`❌ Error adding auto-monitor user ${config.identifier}:`, error);
+    }
+  }
+  
+  console.log('');
+}
+
+/**
  * Start background monitoring if not already started
  */
-export function startBackgroundMonitoring(): void {
+export async function startBackgroundMonitoring(): Promise<void> {
   if (monitoringStopFunction) {
     console.log('Background monitoring already running');
     return;
@@ -59,9 +96,12 @@ export function startBackgroundMonitoring(): void {
     return;
   }
 
+  // Initialize auto-monitored users first
+  await initializeAutoMonitoredUsers();
+
   const checkInterval = parseInt(process.env.CHECK_INTERVAL_SECONDS || '30');
-  console.log(`\n🔄 Starting background monitoring (checking every ${checkInterval}s)...`);
-  console.log(`📋 Monitoring users added via web interface\n`);
+  console.log(`🔄 Starting background monitoring (checking every ${checkInterval}s)...`);
+  console.log(`📋 Monitoring users added via web interface and auto-monitored addresses\n`);
   
   monitoringStopFunction = sniper.startMonitoring(checkInterval);
 }

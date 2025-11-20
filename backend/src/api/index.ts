@@ -32,7 +32,7 @@ app.get('/api/status', (req: Request, res: Response) => {
 // Add user to monitor
 app.post('/api/users', async (req: Request, res: Response) => {
   try {
-    const { usernameOrFid, buyAmountEth } = req.body;
+    const { usernameOrFid, buyAmountEth, slippagePercent } = req.body;
 
     if (!usernameOrFid) {
       return res.status(400).json({ error: 'usernameOrFid is required' });
@@ -43,14 +43,14 @@ app.post('/api/users', async (req: Request, res: Response) => {
       ? parseInt(usernameOrFid)
       : usernameOrFid;
 
-    const user = await sniper.addUser(identifier);
+    const user = await sniper.addUser(
+      identifier,
+      buyAmountEth ? parseFloat(buyAmountEth) : undefined,
+      slippagePercent ? parseFloat(slippagePercent) : undefined
+    );
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (buyAmountEth) {
-      sniper.updateUserBuyAmount(user.fid, parseFloat(buyAmountEth));
     }
 
     res.json({ success: true, user });

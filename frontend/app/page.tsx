@@ -152,7 +152,7 @@ export default function Home() {
       </section>
 
       <section className="panel">
-        <div style={{ display: 'flex', justify-content: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2>Watchlist</h2>
           <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
             {monitoredUsers.length} creator{monitoredUsers.length === 1 ? '' : 's'}

@@ -24,7 +24,11 @@ export class SniperService {
   /**
    * Add a user to monitor
    */
-  async addUser(usernameOrFid: string | number): Promise<MonitoredUser | null> {
+  async addUser(
+    usernameOrFid: string | number,
+    buyAmountEth?: number,
+    slippagePercent?: number
+  ): Promise<MonitoredUser | null> {
     let user: { fid: number; username: string } | null = null;
 
     if (typeof usernameOrFid === 'string') {
@@ -41,12 +45,14 @@ export class SniperService {
     const monitoredUser: MonitoredUser = {
       fid: user.fid,
       username: user.username,
-      buyAmountEth: this.config.defaultBuyAmountEth,
+      buyAmountEth: buyAmountEth ?? this.config.defaultBuyAmountEth,
+      slippagePercent: slippagePercent,
       enabled: true,
     };
 
     this.monitoredUsers.set(user.fid, monitoredUser);
-    console.log(`Added user to monitor: ${user.username} (FID: ${user.fid})`);
+    const slippageInfo = slippagePercent ? ` (${slippagePercent}% slippage)` : '';
+    console.log(`Added user to monitor: ${user.username} (FID: ${user.fid})${slippageInfo}`);
     return monitoredUser;
   }
 
@@ -155,11 +161,14 @@ export class SniperService {
       Math.floor(parseFloat(user.buyAmountEth.toString()) * 1e18)
     );
 
-    console.log(`   💰 Buying with ${user.buyAmountEth} ETH...`);
+    // Use user-specific slippage if set, otherwise use default
+    const slippageToUse = user.slippagePercent ?? this.config.maxSlippagePercent;
+    
+    console.log(`   💰 Buying with ${user.buyAmountEth} ETH (${slippageToUse}% slippage)...`);
     const buyResult = await this.zora.buyToken(
       token.contractAddress,
       ethAmount,
-      this.config.maxSlippagePercent
+      slippageToUse
     );
 
     // Mark as processed
