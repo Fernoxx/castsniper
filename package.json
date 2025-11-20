@@ -7,7 +7,7 @@
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
     "build:lib": "tsc",
-    "start": "node dist/index.js",
+    "start": "cd backend && node dist/index.js",
     "dev": "tsx src/index.ts",
     "watch": "tsx watch src/index.ts"
   },
