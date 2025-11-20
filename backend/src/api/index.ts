@@ -1,10 +1,6 @@
 import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
-import { SniperService } from '../services/sniper.service.js';
-import type { SniperConfig } from '../types/index.js';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import { getSniperService, startBackgroundMonitoring, stopBackgroundMonitoring } from '../services/sniper.service.singleton.js';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3001;
@@ -12,42 +8,6 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
-
-// Initialize sniper service
-let sniperService: SniperService | null = null;
-
-function initializeSniper(): SniperService {
-  if (sniperService) {
-    return sniperService;
-  }
-
-  const requiredEnvVars = [
-    'NEYNAR_API_KEY',
-    'PRIVATE_KEY',
-    'WALLET_ADDRESS',
-    'BASE_RPC_URL',
-  ];
-
-  for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-      throw new Error(`Missing required environment variable: ${envVar}`);
-    }
-  }
-
-  const config: SniperConfig = {
-    neynarApiKey: process.env.NEYNAR_API_KEY!,
-    privateKey: process.env.PRIVATE_KEY!,
-    walletAddress: process.env.WALLET_ADDRESS!,
-    baseRpcUrl: process.env.BASE_RPC_URL || 'https://mainnet.base.org',
-    defaultBuyAmountEth: parseFloat(process.env.DEFAULT_BUY_AMOUNT_ETH || '0.01'),
-    maxSlippagePercent: parseFloat(process.env.MAX_SLIPPAGE_PERCENT || '5'),
-    gasPriceGwei: parseFloat(process.env.GAS_PRICE_GWEI || '0.1'),
-    enabled: process.env.SNIPER_ENABLED !== 'false',
-  };
-
-  sniperService = new SniperService(config);
-  return sniperService;
-}
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
@@ -57,7 +17,7 @@ app.get('/health', (req: Request, res: Response) => {
 // Get sniper status
 app.get('/api/status', (req: Request, res: Response) => {
   try {
-    const sniper = initializeSniper();
+    const sniper = getSniperService();
     const users = sniper.getMonitoredUsers();
     res.json({
       enabled: sniper['config'].enabled,
@@ -78,7 +38,7 @@ app.post('/api/users', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'usernameOrFid is required' });
     }
 
-    const sniper = initializeSniper();
+    const sniper = getSniperService();
     const identifier = typeof usernameOrFid === 'string' && /^\d+$/.test(usernameOrFid)
       ? parseInt(usernameOrFid)
       : usernameOrFid;
@@ -103,7 +63,7 @@ app.post('/api/users', async (req: Request, res: Response) => {
 app.delete('/api/users/:fid', (req: Request, res: Response) => {
   try {
     const fid = parseInt(req.params.fid);
-    const sniper = initializeSniper();
+    const sniper = getSniperService();
     const removed = sniper.removeUser(fid);
 
     if (removed) {
@@ -119,7 +79,7 @@ app.delete('/api/users/:fid', (req: Request, res: Response) => {
 // Get all monitored users
 app.get('/api/users', (req: Request, res: Response) => {
   try {
-    const sniper = initializeSniper();
+    const sniper = getSniperService();
     const users = sniper.getMonitoredUsers();
     res.json({ users });
   } catch (error: any) {
@@ -137,7 +97,7 @@ app.patch('/api/users/:fid', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'buyAmountEth is required' });
     }
 
-    const sniper = initializeSniper();
+    const sniper = getSniperService();
     const updated = sniper.updateUserBuyAmount(fid, parseFloat(buyAmountEth));
 
     if (updated) {
@@ -153,7 +113,7 @@ app.patch('/api/users/:fid', (req: Request, res: Response) => {
 // Manually trigger check cycle
 app.post('/api/check', async (req: Request, res: Response) => {
   try {
-    const sniper = initializeSniper();
+    const sniper = getSniperService();
     await sniper.runCheckCycle();
     res.json({ success: true, message: 'Check cycle completed' });
   } catch (error: any) {
@@ -165,13 +125,12 @@ app.post('/api/check', async (req: Request, res: Response) => {
 app.post('/api/monitoring/:action', (req: Request, res: Response) => {
   try {
     const action = req.params.action;
-    const sniper = initializeSniper();
 
     if (action === 'start') {
-      // Start monitoring (this would need to be stored in memory or DB)
+      startBackgroundMonitoring();
       res.json({ success: true, message: 'Monitoring started' });
     } else if (action === 'stop') {
-      // Stop monitoring
+      stopBackgroundMonitoring();
       res.json({ success: true, message: 'Monitoring stopped' });
     } else {
       res.status(400).json({ error: 'Invalid action. Use "start" or "stop"' });

@@ -126,7 +126,7 @@ export class SniperService {
     console.log(`   From user: ${user.username} (FID: ${user.fid})`);
     console.log(`   Cast hash: ${token.castHash}`);
 
-    // Validate it's a Zora Creator Coin
+    // Validate it's a valid ERC20 token (Zora Creator Coin or Clanker token)
     const coinInfo = await this.zora.validateCreatorCoin(token.contractAddress);
     if (!coinInfo.isValid) {
       console.log(`   ❌ Invalid token contract`);
@@ -135,11 +135,11 @@ export class SniperService {
 
     console.log(`   ✅ Valid token: ${coinInfo.name} (${coinInfo.symbol})`);
 
-    // Check if it has buy function
+    // Check if it has buy function (required for Zora Creator Coins and Clanker tokens)
     const hasBuy = await this.zora.hasBuyFunction(token.contractAddress);
     if (!hasBuy) {
-      console.log(`   ⚠️  Token may not support direct buy function`);
-      // Continue anyway, as some tokens might have different patterns
+      console.log(`   ⚠️  Token may not support direct buy function - attempting buy anyway`);
+      // Continue anyway, as buy function detection might not catch all patterns
     }
 
     // Detect taxes before buying
