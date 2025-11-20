@@ -1,12 +1,14 @@
 import { SniperService } from './sniper.service.js';
 import type { SniperConfig } from '../types/index.js';
-import { AUTO_MONITOR_ADDRESSES } from '../config/auto-monitor.js';
+import { AUTO_MONITOR_ADDRESSES, CONTRACT_MONITOR_ADDRESSES } from '../config/auto-monitor.js';
+import { ContractMonitorService } from './contract-monitor.service.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 let sniperServiceInstance: SniperService | null = null;
 let monitoringStopFunction: (() => void) | null = null;
+let contractMonitors: ContractMonitorService[] = [];
 
 /**
  * Get or create the shared SniperService instance
@@ -81,6 +83,46 @@ async function initializeAutoMonitoredUsers(): Promise<void> {
 }
 
 /**
+ * Initialize contract creation monitoring
+ */
+function initializeContractMonitoring(): void {
+  if (CONTRACT_MONITOR_ADDRESSES.length === 0) {
+    return;
+  }
+
+  const sniper = getSniperService();
+  const zoraService = sniper['zora'];
+  const baseRpcUrl = sniper['config'].baseRpcUrl;
+  const checkInterval = parseInt(process.env.CHECK_INTERVAL_SECONDS || '30');
+
+  console.log(`\n🏗️  Initializing ${CONTRACT_MONITOR_ADDRESSES.length} contract creation monitor(s)...\n`);
+
+  for (const config of CONTRACT_MONITOR_ADDRESSES) {
+    try {
+      const monitor = new ContractMonitorService(
+        baseRpcUrl,
+        zoraService,
+        config.address,
+        config.buyAmountEth,
+        config.slippagePercent
+      );
+
+      monitor.startMonitoring(checkInterval);
+      contractMonitors.push(monitor);
+
+      console.log(`✅ Contract monitoring: ${config.address}`);
+      if (config.description) {
+        console.log(`   ${config.description}`);
+      }
+    } catch (error) {
+      console.error(`❌ Error initializing contract monitor for ${config.address}:`, error);
+    }
+  }
+
+  console.log('');
+}
+
+/**
  * Start background monitoring if not already started
  */
 export async function startBackgroundMonitoring(): Promise<void> {
@@ -99,8 +141,11 @@ export async function startBackgroundMonitoring(): Promise<void> {
   // Initialize auto-monitored users first
   await initializeAutoMonitoredUsers();
 
+  // Initialize contract creation monitoring
+  initializeContractMonitoring();
+
   const checkInterval = parseInt(process.env.CHECK_INTERVAL_SECONDS || '30');
-  console.log(`🔄 Starting background monitoring (checking every ${checkInterval}s)...`);
+  console.log(`🔄 Starting cast monitoring (checking every ${checkInterval}s)...`);
   console.log(`📋 Monitoring users added via web interface and auto-monitored addresses\n`);
   
   monitoringStopFunction = sniper.startMonitoring(checkInterval);
@@ -113,6 +158,13 @@ export function stopBackgroundMonitoring(): void {
   if (monitoringStopFunction) {
     monitoringStopFunction();
     monitoringStopFunction = null;
-    console.log('Background monitoring stopped');
+    console.log('Cast monitoring stopped');
   }
+
+  // Stop contract monitors
+  for (const monitor of contractMonitors) {
+    monitor.stopMonitoring();
+  }
+  contractMonitors = [];
+  console.log('Contract monitoring stopped');
 }

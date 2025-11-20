@@ -37,6 +37,13 @@ export class ZoraCreatorCoinService {
   }
 
   /**
+   * Get wallet address
+   */
+  async getWalletAddress(): Promise<string> {
+    return await this.signer.getAddress();
+  }
+
+  /**
    * Validate if an address is a valid Zora Creator Coin
    */
   async validateCreatorCoin(address: string): Promise<ZoraCreatorCoinInfo> {

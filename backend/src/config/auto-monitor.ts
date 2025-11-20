@@ -11,17 +11,32 @@ export interface AutoMonitorConfig {
   description?: string;
 }
 
+export interface ContractMonitorConfig {
+  address: string; // Ethereum address to monitor for contract creations
+  buyAmountEth: number;
+  slippagePercent: number;
+  description?: string;
+}
+
 export const AUTO_MONITOR_ADDRESSES: AutoMonitorConfig[] = [
   {
     identifier: 'jessepollak', // Farcaster username from zora.co/@jessepollak
     buyAmountEth: 0.01, // Default amount, can be adjusted
     slippagePercent: 15, // 15% slippage as requested
-    description: 'Jesse Pollak - Zora Creator Coin sniper target',
+    description: 'Jesse Pollak - Zora Creator Coin sniper target (cast monitoring)',
   },
-  // Note: Ethereum addresses and ENS names can be added here
-  // For now, monitoring by Farcaster username is the primary method
-  // When jessepollak casts a contract address, it will be detected and bought with 15% slippage
 ];
 
-// Note: ENS names like jesse.base.eth will be resolved to addresses
-// and can be monitored by watching for contract addresses in casts
+/**
+ * Contract creation monitoring configuration
+ * Monitors for new contract creations from these addresses
+ * When a Zora Creator Coin is created/activated, automatically buys it
+ */
+export const CONTRACT_MONITOR_ADDRESSES: ContractMonitorConfig[] = [
+  {
+    address: '0xd211b9417f28d128435cd8d022aeaebbc8a28f17', // Jesse's address
+    buyAmountEth: 0.01, // Will use available wallet funds
+    slippagePercent: 15, // 15% slippage
+    description: 'Jesse Pollak wallet - Monitor for Zora Creator Coin contract creations',
+  },
+];
