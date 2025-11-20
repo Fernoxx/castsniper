@@ -189,19 +189,31 @@ export class ContractMonitorService {
                 const walletAddress = await this.zora.getWalletAddress();
                 const balances = await this.getWalletBalances(walletAddress);
                 
-                // Use available ETH, but cap at configured amount
-                const requestedEth = BigInt(Math.floor(this.buyAmountEth * 1e18));
-                const availableEth = balances.eth > BigInt(0) ? balances.eth : BigInt(0);
-                const ethAmount = availableEth < requestedEth ? availableEth : requestedEth;
-
-                if (ethAmount === BigInt(0)) {
-                  console.log(`   ⚠️  No ETH available in wallet`);
+                // Target: 0.035 ETH or 100 USDC equivalent
+                const targetEth = BigInt(Math.floor(this.buyAmountEth * 1e18)); // 0.035 ETH
+                const targetUsdc = BigInt(100 * 1e6); // 100 USDC (6 decimals)
+                
+                // Check if we have enough ETH
+                let ethAmount = BigInt(0);
+                if (balances.eth >= targetEth) {
+                  ethAmount = targetEth;
+                  console.log(`   💰 Wallet balance: ${ethers.formatEther(balances.eth)} ETH`);
+                  console.log(`   💰 Using: ${ethers.formatEther(ethAmount)} ETH (target: 0.035 ETH)`);
+                } else if (balances.usdc >= targetUsdc) {
+                  // If not enough ETH, check USDC and swap if needed
+                  console.log(`   💰 ETH balance insufficient: ${ethers.formatEther(balances.eth)} ETH`);
+                  console.log(`   💵 USDC balance: ${(Number(balances.usdc) / 1e6).toFixed(2)} USDC`);
+                  console.log(`   💵 Target: 100 USDC`);
+                  
+                  // For now, try with available ETH (will attempt USDC swap in buyTokenWithFallback)
+                  ethAmount = balances.eth > BigInt(0) ? balances.eth : BigInt(0);
+                  console.log(`   ⚠️  Will attempt purchase with available ETH: ${ethers.formatEther(ethAmount)} ETH`);
+                } else {
+                  console.log(`   ⚠️  Insufficient funds: ${ethers.formatEther(balances.eth)} ETH, ${(Number(balances.usdc) / 1e6).toFixed(2)} USDC`);
+                  console.log(`   ⚠️  Need: 0.035 ETH or 100 USDC`);
                   this.processedContracts.add(contractAddress);
                   continue;
                 }
-
-                console.log(`   💰 Wallet balance: ${ethers.formatEther(balances.eth)} ETH`);
-                console.log(`   💰 Using: ${ethers.formatEther(ethAmount)} ETH`);
 
                 // Try to buy with ETH/USDC fallback
                 const buyResult = await this.buyTokenWithFallback(
@@ -261,19 +273,31 @@ export class ContractMonitorService {
                   const walletAddress = await this.zora.getWalletAddress();
                   const balances = await this.getWalletBalances(walletAddress);
                   
-                  // Use available ETH, but cap at configured amount
-                  const requestedEth = BigInt(Math.floor(this.buyAmountEth * 1e18));
-                  const availableEth = balances.eth > BigInt(0) ? balances.eth : BigInt(0);
-                  const ethAmount = availableEth < requestedEth ? availableEth : requestedEth;
-
-                  if (ethAmount === BigInt(0)) {
-                    console.log(`   ⚠️  No ETH available in wallet`);
+                  // Target: 0.035 ETH or 100 USDC equivalent
+                  const targetEth = BigInt(Math.floor(this.buyAmountEth * 1e18)); // 0.035 ETH
+                  const targetUsdc = BigInt(100 * 1e6); // 100 USDC (6 decimals)
+                  
+                  // Check if we have enough ETH
+                  let ethAmount = BigInt(0);
+                  if (balances.eth >= targetEth) {
+                    ethAmount = targetEth;
+                    console.log(`   💰 Wallet balance: ${ethers.formatEther(balances.eth)} ETH`);
+                    console.log(`   💰 Using: ${ethers.formatEther(ethAmount)} ETH (target: 0.035 ETH)`);
+                  } else if (balances.usdc >= targetUsdc) {
+                    // If not enough ETH, check USDC and swap if needed
+                    console.log(`   💰 ETH balance insufficient: ${ethers.formatEther(balances.eth)} ETH`);
+                    console.log(`   💵 USDC balance: ${(Number(balances.usdc) / 1e6).toFixed(2)} USDC`);
+                    console.log(`   💵 Target: 100 USDC`);
+                    
+                    // For now, try with available ETH (will attempt USDC swap in buyTokenWithFallback)
+                    ethAmount = balances.eth > BigInt(0) ? balances.eth : BigInt(0);
+                    console.log(`   ⚠️  Will attempt purchase with available ETH: ${ethers.formatEther(ethAmount)} ETH`);
+                  } else {
+                    console.log(`   ⚠️  Insufficient funds: ${ethers.formatEther(balances.eth)} ETH, ${(Number(balances.usdc) / 1e6).toFixed(2)} USDC`);
+                    console.log(`   ⚠️  Need: 0.035 ETH or 100 USDC`);
                     this.processedContracts.add(contractAddress);
                     continue;
                   }
-
-                  console.log(`   💰 Wallet balance: ${ethers.formatEther(balances.eth)} ETH`);
-                  console.log(`   💰 Using: ${ethers.formatEther(ethAmount)} ETH`);
 
                   // Try to buy with ETH/USDC fallback
                   const buyResult = await this.buyTokenWithFallback(

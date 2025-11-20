@@ -35,8 +35,8 @@ export const AUTO_MONITOR_ADDRESSES: AutoMonitorConfig[] = [
 export const CONTRACT_MONITOR_ADDRESSES: ContractMonitorConfig[] = [
   {
     address: '0xd211b9417f28d128435cd8d022aeaebbc8a28f17', // Jesse's address
-    buyAmountEth: 0.01, // Will use available wallet funds
+    buyAmountEth: 0.035, // 0.035 ETH (equivalent to ~100 USDC at current rates)
     slippagePercent: 15, // 15% slippage
-    description: 'Jesse Pollak wallet - Monitor for Zora Creator Coin contract creations',
+    description: 'Jesse Pollak wallet - Monitor for Zora Creator Coin contract creations. Will buy with 0.035 ETH or 100 USDC.',
   },
 ];

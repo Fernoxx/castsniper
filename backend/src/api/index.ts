@@ -1,5 +1,6 @@
 import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
+import { ethers } from 'ethers';
 import { getSniperService, startBackgroundMonitoring, stopBackgroundMonitoring } from '../services/sniper.service.singleton.js';
 
 const app: Express = express();
@@ -140,9 +141,46 @@ app.post('/api/monitoring/:action', (req: Request, res: Response) => {
   }
 });
 
+// Get contract monitor status
+app.get('/api/contract-monitor/status', async (req: Request, res: Response) => {
+  try {
+    const sniper = getSniperService();
+    const walletAddress = await sniper['zora'].getWalletAddress();
+    
+    // Get balances
+    const { ContractMonitorService } = await import('../services/contract-monitor.service.js');
+    const baseRpcUrl = sniper['config'].baseRpcUrl;
+    const tempMonitor = new ContractMonitorService(
+      baseRpcUrl,
+      sniper['zora'],
+      '0x0000000000000000000000000000000000000000', // dummy address
+      0.035,
+      15
+    );
+    const balances = await tempMonitor.getWalletBalances(walletAddress);
+    
+    res.json({
+      walletAddress,
+      balances: {
+        eth: ethers.formatEther(balances.eth),
+        usdc: (Number(balances.usdc) / 1e6).toFixed(2),
+      },
+      targetAmounts: {
+        eth: '0.035',
+        usdc: '100',
+      },
+      monitoredAddress: '0xd211b9417f28d128435cd8d022aeaebbc8a28f17',
+      slippagePercent: 15,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Backend API server running on port ${PORT}`);
   console.log(`📡 Health check: http://localhost:${PORT}/health`);
   console.log(`📊 API status: http://localhost:${PORT}/api/status`);
+  console.log(`🏗️  Contract monitor status: http://localhost:${PORT}/api/contract-monitor/status`);
 });
