@@ -1,191 +1,118 @@
-# Farcaster Creator Coin Sniper Bot
+# Farcaster Creator Coin Sniper
 
-A sophisticated sniper bot for automatically buying Zora Creator Coins when Farcaster users post contract addresses (CAs) in their casts. Built specifically for Base network and Farcaster/Base app users.
+A full-stack application for automatically buying Zora Creator Coins when Farcaster users post contract addresses in their casts.
 
-## Features
+## 🏗️ Project Structure
 
-- 🔍 **User Monitoring**: Search and monitor Farcaster users by username or FID
-- 📡 **Real-time Cast Monitoring**: Uses Neynar API to monitor user casts for contract addresses
-- 🎯 **CA Detection**: Automatically detects Ethereum contract addresses in cast text
-- 💰 **Auto-Buy**: Automatically purchases Zora Creator Coins when detected
-- 🛡️ **Slippage Protection**: Configurable slippage protection to prevent bad trades
-- ⚡ **Fast Execution**: Optimized for speed to catch early opportunities
-- 🔒 **Safe Trading**: Validates tokens before purchasing
+This project consists of three main parts:
 
-## How It Works
+- **Backend API** (`/backend`) - Express API server deployed to Railway
+- **Frontend Web App** (`/frontend`) - Next.js app deployed to Vercel  
+- **Core Library** (`/src`) - Shared sniper bot logic (original CLI version)
 
-1. **User Selection**: Add Farcaster users to monitor (by username or FID)
-2. **Cast Monitoring**: Bot continuously checks user casts via Neynar API
-3. **CA Detection**: When a contract address (0x...) is found in a cast, it's extracted
-4. **Token Validation**: Validates the contract is a valid ERC20 token
-5. **Auto-Purchase**: Buys the token with your configured amount and slippage protection
+## 🚀 Quick Start
 
-## Installation
+### Backend (Railway)
 
+1. Navigate to backend folder: `cd backend`
+2. Install: `npm install`
+3. Configure: Copy `.env.example` to `.env` and add your keys
+4. Run: `npm run dev`
+
+### Frontend (Vercel)
+
+1. Navigate to frontend folder: `cd frontend`
+2. Install: `npm install`
+3. Configure: Set `NEXT_PUBLIC_API_URL` in `.env.local`
+4. Run: `npm run dev`
+
+## 📦 Deployment
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
+
+### Railway (Backend)
+- Deploy `/backend` folder
+- Set environment variables (see [ENV_VARIABLES.md](./ENV_VARIABLES.md))
+- Get backend URL
+
+### Vercel (Frontend)
+- Deploy `/frontend` folder
+- Set `NEXT_PUBLIC_API_URL` to your Railway URL
+- Deploy!
+
+## 📚 Documentation
+
+- [DEPLOYMENT.md](./DEPLOYMENT.md) - Complete deployment guide
+- [ENV_VARIABLES.md](./ENV_VARIABLES.md) - Environment variables reference
+- [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) - Project structure explanation
+- [QUICKSTART.md](./QUICKSTART.md) - Quick start guide (original CLI version)
+
+## 🔧 Development
+
+### Backend API
 ```bash
-# Install dependencies
+cd backend
 npm install
-
-# Copy environment file
-cp .env.example .env
-
-# Edit .env with your configuration
-nano .env
-```
-
-## Configuration
-
-Create a `.env` file with the following variables:
-
-```env
-# Neynar API Configuration (Required)
-NEYNAR_API_KEY=your_neynar_api_key_here
-
-# Wallet Configuration (Required)
-PRIVATE_KEY=your_wallet_private_key_here
-WALLET_ADDRESS=your_wallet_address_here
-
-# Base Network RPC (Required)
-BASE_RPC_URL=https://mainnet.base.org
-# Or use Alchemy/Infura: https://base-mainnet.g.alchemy.com/v2/YOUR_API_KEY
-
-# Sniper Configuration
-SNIPER_ENABLED=true
-DEFAULT_BUY_AMOUNT_ETH=0.01
-MAX_SLIPPAGE_PERCENT=5
-CHECK_INTERVAL_SECONDS=30
-
-# Users to Monitor (comma-separated usernames or FIDs)
-MONITORED_USERS=username1,username2,12345
-```
-
-### Getting a Neynar API Key
-
-1. Visit [Neynar](https://neynar.com)
-2. Sign up for an account
-3. Create an API key in the dashboard
-4. Add it to your `.env` file
-
-## Usage
-
-### Development Mode
-
-```bash
 npm run dev
+# Runs on http://localhost:3001
 ```
 
-### Production Mode
-
+### Frontend
 ```bash
-# Build TypeScript
-npm run build
-
-# Run
-npm start
-```
-
-### Example
-
-```bash
-# Set users to monitor
-export MONITORED_USERS="vitalik,buterin"
-
-# Run the bot
+cd frontend
+npm install
 npm run dev
+# Runs on http://localhost:3000
 ```
 
-The bot will:
-1. Search for the users on Farcaster
-2. Start monitoring their casts
-3. Automatically buy any Creator Coins they post
+## 📋 Environment Variables
 
-## Zora Creator Coin Contract Patterns
+### Railway (Backend)
+See [ENV_VARIABLES.md](./ENV_VARIABLES.md#-railway-backend-environment-variables) for complete list.
 
-The bot handles multiple Zora Creator Coin contract patterns:
+**Required:**
+- `NEYNAR_API_KEY`
+- `PRIVATE_KEY`
+- `WALLET_ADDRESS`
+- `BASE_RPC_URL`
 
-- `buy(uint256 minTokensOut)` - Standard buy with slippage protection
-- `buy(uint256 minTokensOut, address recipient)` - Buy with recipient
-- `buy()` - Simple buy function
-- `getBuyQuote(uint256 ethAmount)` - Get quote before buying
-- `price()` - Get current price
+### Vercel (Frontend)
+**Required:**
+- `NEXT_PUBLIC_API_URL` - Your Railway backend URL
 
-The bot automatically detects which pattern the contract uses and calls the appropriate function.
+## 🎯 Features
 
-## Slippage Protection
+- 🔍 **User Monitoring**: Search and monitor Farcaster users
+- 📡 **Real-time Cast Monitoring**: Uses Neynar API
+- 🎯 **CA Detection**: Automatically detects contract addresses
+- 💰 **Auto-Buy**: Purchases tokens when detected
+- 🛡️ **Slippage Protection**: Configurable protection
+- ⚡ **Fast Execution**: Optimized for speed
+- 🔒 **Safe Trading**: Validates tokens before purchasing
+- 🌐 **Web Interface**: Manage users via web UI
 
-The bot includes built-in slippage protection:
+## 📖 API Endpoints
 
-1. Gets a buy quote before purchasing
-2. Calculates minimum tokens with slippage tolerance
-3. Only executes if the trade meets your slippage requirements
-4. Prevents buying at unfavorable prices
+- `GET /health` - Health check
+- `GET /api/status` - Get sniper status
+- `POST /api/users` - Add user to monitor
+- `DELETE /api/users/:fid` - Remove user
+- `GET /api/users` - List all users
+- `PATCH /api/users/:fid` - Update user settings
+- `POST /api/check` - Manual check trigger
 
-## Safety Features
+## ⚠️ Security Notes
 
-- ✅ Validates contract addresses before purchasing
-- ✅ Checks token is a valid ERC20
-- ✅ Slippage protection
-- ✅ Duplicate detection (won't buy the same token twice from same cast)
-- ✅ Error handling and logging
-- ✅ Configurable buy amounts per user
+- Never commit private keys
+- Use environment variables only
+- Use dedicated wallet for sniping
+- Start with small amounts
+- Monitor transactions
 
-## Project Structure
-
-```
-src/
-├── index.ts                 # Main entry point
-├── types/
-│   └── index.ts            # TypeScript interfaces
-├── services/
-│   ├── neynar.service.ts   # Neynar API integration
-│   ├── zora-creator-coin.service.ts  # Zora token interaction
-│   └── sniper.service.ts   # Main sniper logic
-└── utils/
-    └── address.ts          # Address validation utilities
-```
-
-## Important Notes
-
-⚠️ **Security**:
-- Never share your private key
-- Use a dedicated wallet for sniping
-- Start with small amounts to test
-- Monitor your transactions
-
-⚠️ **Risks**:
-- Trading cryptocurrencies carries risk
-- Slippage can still occur in volatile markets
-- Some tokens may have taxes or fees
-- Always do your own research (DYOR)
-
-⚠️ **Rate Limits**:
-- Neynar API has rate limits
-- The bot includes delays to respect limits
-- Adjust `CHECK_INTERVAL_SECONDS` if needed
-
-## Troubleshooting
-
-### "User not found"
-- Verify the username or FID is correct
-- Check Neynar API key is valid
-
-### "Buy function not found"
-- The contract may use a different pattern
-- Check the contract manually on Basescan
-
-### "Transaction failed"
-- Check you have enough ETH for gas
-- Verify the contract is on Base network
-- Check slippage settings
-
-### "Could not get buy quote"
-- Contract may not have a quote function
-- Try increasing slippage tolerance
-
-## License
+## 📄 License
 
 MIT
 
-## Disclaimer
+## ⚠️ Disclaimer
 
-This bot is for educational purposes. Use at your own risk. Always test with small amounts first. The authors are not responsible for any losses incurred.
+This bot is for educational purposes. Use at your own risk. Always test with small amounts first. The authors are not responsible for any losses.

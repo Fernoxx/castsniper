@@ -1,0 +1,189 @@
+import express, { Express, Request, Response } from 'express';
+import cors from 'cors';
+import { SniperService } from '../services/sniper.service.js';
+import type { SniperConfig } from '../types/index.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const app: Express = express();
+const PORT = process.env.PORT || 3001;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Initialize sniper service
+let sniperService: SniperService | null = null;
+
+function initializeSniper(): SniperService {
+  if (sniperService) {
+    return sniperService;
+  }
+
+  const requiredEnvVars = [
+    'NEYNAR_API_KEY',
+    'PRIVATE_KEY',
+    'WALLET_ADDRESS',
+    'BASE_RPC_URL',
+  ];
+
+  for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+      throw new Error(`Missing required environment variable: ${envVar}`);
+    }
+  }
+
+  const config: SniperConfig = {
+    neynarApiKey: process.env.NEYNAR_API_KEY!,
+    privateKey: process.env.PRIVATE_KEY!,
+    walletAddress: process.env.WALLET_ADDRESS!,
+    baseRpcUrl: process.env.BASE_RPC_URL || 'https://mainnet.base.org',
+    defaultBuyAmountEth: parseFloat(process.env.DEFAULT_BUY_AMOUNT_ETH || '0.01'),
+    maxSlippagePercent: parseFloat(process.env.MAX_SLIPPAGE_PERCENT || '5'),
+    gasPriceGwei: parseFloat(process.env.GAS_PRICE_GWEI || '0.1'),
+    enabled: process.env.SNIPER_ENABLED !== 'false',
+  };
+
+  sniperService = new SniperService(config);
+  return sniperService;
+}
+
+// Health check
+app.get('/health', (req: Request, res: Response) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Get sniper status
+app.get('/api/status', (req: Request, res: Response) => {
+  try {
+    const sniper = initializeSniper();
+    const users = sniper.getMonitoredUsers();
+    res.json({
+      enabled: sniper['config'].enabled,
+      monitoredUsers: users.length,
+      users: users,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add user to monitor
+app.post('/api/users', async (req: Request, res: Response) => {
+  try {
+    const { usernameOrFid, buyAmountEth } = req.body;
+
+    if (!usernameOrFid) {
+      return res.status(400).json({ error: 'usernameOrFid is required' });
+    }
+
+    const sniper = initializeSniper();
+    const identifier = typeof usernameOrFid === 'string' && /^\d+$/.test(usernameOrFid)
+      ? parseInt(usernameOrFid)
+      : usernameOrFid;
+
+    const user = await sniper.addUser(identifier);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (buyAmountEth) {
+      sniper.updateUserBuyAmount(user.fid, parseFloat(buyAmountEth));
+    }
+
+    res.json({ success: true, user });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Remove user from monitoring
+app.delete('/api/users/:fid', (req: Request, res: Response) => {
+  try {
+    const fid = parseInt(req.params.fid);
+    const sniper = initializeSniper();
+    const removed = sniper.removeUser(fid);
+
+    if (removed) {
+      res.json({ success: true, message: 'User removed from monitoring' });
+    } else {
+      res.status(404).json({ error: 'User not found in monitoring list' });
+    }
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all monitored users
+app.get('/api/users', (req: Request, res: Response) => {
+  try {
+    const sniper = initializeSniper();
+    const users = sniper.getMonitoredUsers();
+    res.json({ users });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update user buy amount
+app.patch('/api/users/:fid', (req: Request, res: Response) => {
+  try {
+    const fid = parseInt(req.params.fid);
+    const { buyAmountEth } = req.body;
+
+    if (!buyAmountEth) {
+      return res.status(400).json({ error: 'buyAmountEth is required' });
+    }
+
+    const sniper = initializeSniper();
+    const updated = sniper.updateUserBuyAmount(fid, parseFloat(buyAmountEth));
+
+    if (updated) {
+      res.json({ success: true, message: 'Buy amount updated' });
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Manually trigger check cycle
+app.post('/api/check', async (req: Request, res: Response) => {
+  try {
+    const sniper = initializeSniper();
+    await sniper.runCheckCycle();
+    res.json({ success: true, message: 'Check cycle completed' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Start/stop monitoring
+app.post('/api/monitoring/:action', (req: Request, res: Response) => {
+  try {
+    const action = req.params.action;
+    const sniper = initializeSniper();
+
+    if (action === 'start') {
+      // Start monitoring (this would need to be stored in memory or DB)
+      res.json({ success: true, message: 'Monitoring started' });
+    } else if (action === 'stop') {
+      // Stop monitoring
+      res.json({ success: true, message: 'Monitoring stopped' });
+    } else {
+      res.status(400).json({ error: 'Invalid action. Use "start" or "stop"' });
+    }
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Backend API server running on port ${PORT}`);
+  console.log(`📡 Health check: http://localhost:${PORT}/health`);
+  console.log(`📊 API status: http://localhost:${PORT}/api/status`);
+});
